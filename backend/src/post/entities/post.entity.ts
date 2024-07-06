@@ -6,12 +6,16 @@ import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateCol
 export class Post {
     @PrimaryGeneratedColumn()
     id: number
-    @Column()
-    email: string
-    @Column()
-    password: string
+
+    @Column('text')
+    content: string
+
     @CreateDateColumn()
     createdAt: Date
+
     @UpdateDateColumn()
     updatedAt: Date
+
+    @Column({ default: 0 })
+    views: number
 }

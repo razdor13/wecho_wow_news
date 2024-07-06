@@ -1,26 +1,37 @@
-import { Injectable } from '@nestjs/common';
-import { CreatePostDto } from './dto/create-post.dto';
-import { UpdatePostDto } from './dto/update-post.dto';
+import { Injectable, NotFoundException } from '@nestjs/common'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Repository } from 'typeorm'
+import { Post } from './entities/post.entity'
 
 @Injectable()
 export class PostService {
-  create(createPostDto: CreatePostDto) {
-    return 'This action adds a new post';
-  }
+  constructor(
+    @InjectRepository(Post)
+    private readonly postRepository: Repository<Post>,
+  ) {}
 
-  findAll() {
-    return `This action returns all post`;
-  }
+  // Отримання статті за ID
+  async findOne(id: number): Promise<Post | null> {
+    // Отримання статті з бази даних
+    const post = await this.postRepository.findOne({ where: { id } })
 
-  findOne(id: number) {
-    return `This action returns a #${id} post`;
+    if (!post) {
+      throw new NotFoundException('Post not found')
+    }
+    // Збільшуємо кількість переглядів на один
+    await this.incrementViews(id)
+    return post
   }
-
-  update(id: number, updatePostDto: UpdatePostDto) {
-    return `This action updates a #${id} post`;
+  async findAll(): Promise<Post[]> {
+    return this.postRepository.find()
   }
-
-  remove(id: number) {
-    return `This action removes a #${id} post`;
+  // Збільшення переглядів на один
+  async incrementViews(id: number): Promise<void> {
+    await this.postRepository
+      .createQueryBuilder()
+      .update(Post)
+      .set({ views: () => 'views + 1' })
+      .where('id = :id', { id })
+      .execute()
   }
 }
