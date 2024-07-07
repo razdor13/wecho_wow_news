@@ -1,3 +1,7 @@
+
+
 export class CreatePostDto {
-    content: string;
-  }
+  name: string
+  content: string
+  authorId: number
+}
