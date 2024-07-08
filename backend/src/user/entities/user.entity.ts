@@ -15,14 +15,14 @@ export class User {
   @Column()
   email: string
   @Column()
-  name: string
+  username: string
   @Column()
   password: string
   @CreateDateColumn()
   createdAt: Date
   @UpdateDateColumn()
   updatedAt: Date
-  @Column()
+  @Column({ default: 'user' })
   role: 'user' | 'editor' | 'admin' // Ролі користувачів
   @OneToMany(() => Post, (post) => post.author)
   posts: Post[];

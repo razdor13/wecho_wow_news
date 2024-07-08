@@ -23,8 +23,9 @@ export class PostService {
       .set({ views: () => 'views + 1' })
       .returning('*')  
       .execute();
-    
+    console.log(result)
     if (result.affected === 0) {
+      
       throw new NotFoundException('Post not found');
     }
   
@@ -34,7 +35,7 @@ export class PostService {
   async findAll(): Promise<Post[]> {
     return this.postRepository.find();
   }
-
+  
   async create(createPostDto: CreatePostDto): Promise<Post> {
     const { content, authorId } = createPostDto;
     const author = await this.userRepository.findOne({ where: { id: authorId } });

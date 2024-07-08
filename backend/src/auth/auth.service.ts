@@ -1,26 +1,38 @@
-import { Injectable } from '@nestjs/common';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
-
+import { BadGatewayException, Injectable } from '@nestjs/common'
+import { UserService } from '../user/user.service'
+import { RegisterDto } from './dto/register.dto'
+import { InjectRepository } from '@nestjs/typeorm'
+import { User } from 'src/user/entities/user.entity'
+import { Repository } from 'typeorm'
+import * as argon2 from "argon2";
 @Injectable()
 export class AuthService {
-  create(createAuthDto: CreateAuthDto) {
-    return 'This action adds a new auth';
-  }
+  constructor(
+    private userService: UserService,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+  ) {}
 
-  findAll() {
-    return `This action returns all auth`;
-  }
+  async register(registerDto: RegisterDto) {
+    // Перевірка, чи існує користувач
+    const existingUser = await this.userRepository.findOne({
+      where: {
+        email: registerDto.email,
+      },
+    })
+    
+    if (existingUser) {
+      throw new BadGatewayException(
+        'Користувач з такою електронною поштою вже існує',
+      )
+    }
 
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
-  }
+    // Створення нового користувача
+    const newUser = await this.userService.create(registerDto)
+    
 
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
-  }
+    // Тут можна додати логіку для створення та повернення токену
 
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+    return newUser
   }
 }
