@@ -12,15 +12,17 @@ export class UserService {
     private userRepository: Repository<User>,
   ) {}
 
-  async create(registerDto: RegisterDto): Promise<User> {
+  async createUser(registerDto: RegisterDto): Promise<User> {
     const newUser = this.userRepository.create(registerDto)
     newUser.password = await argon2.hash(newUser.password)
 
     try {
       return await this.userRepository.save(newUser)
     } catch (error) {
-      // Обробка можливих помилок
       throw new Error('Error saving the new user: ' + error.message)
     }
+  }
+  async findOne(email: string) {
+    return await this.userRepository.findOne({ where: { email: email } })
   }
 }

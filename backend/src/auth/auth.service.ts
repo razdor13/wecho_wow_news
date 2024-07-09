@@ -1,26 +1,25 @@
-import { BadGatewayException, Injectable } from '@nestjs/common'
+import {
+  BadGatewayException,
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common'
 import { UserService } from '../user/user.service'
 import { RegisterDto } from './dto/register.dto'
-import { InjectRepository } from '@nestjs/typeorm'
-import { User } from 'src/user/entities/user.entity'
-import { Repository } from 'typeorm'
-import * as argon2 from "argon2";
+import * as argon2 from 'argon2'
+import { JwtService } from '@nestjs/jwt'
+import { IUser } from 'src/types/types'
+
 @Injectable()
 export class AuthService {
   constructor(
     private userService: UserService,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
+    private readonly jwtService: JwtService,
   ) {}
 
-  async register(registerDto: RegisterDto) {
+  async registerUser(registerDto: RegisterDto) {
     // Перевірка, чи існує користувач
-    const existingUser = await this.userRepository.findOne({
-      where: {
-        email: registerDto.email,
-      },
-    })
-    
+    const existingUser = await this.userService.findOne(registerDto.email)
     if (existingUser) {
       throw new BadGatewayException(
         'Користувач з такою електронною поштою вже існує',
@@ -28,11 +27,24 @@ export class AuthService {
     }
 
     // Створення нового користувача
-    const newUser = await this.userService.create(registerDto)
-    
+    return await this.userService.createUser(registerDto)
 
     // Тут можна додати логіку для створення та повернення токену
+  }
+  async validateUser(email: string, pass: string): Promise<any> {
+    const user = await this.userService.findOne(email)
+    const passwordIsMatch = await argon2.verify(user.password, pass)
+    console.log(passwordIsMatch)
+    if (user && passwordIsMatch) {
+      return user
+    }
 
-    return newUser
+    throw new UnauthorizedException('User or password are incorrect')
+  }
+  async login(user: IUser) {
+    const {id , email} = user
+    return {
+      id , email, token : this.jwtService.sign({id: user.id , email : user.email})
+    };
   }
 }
