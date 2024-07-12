@@ -3,7 +3,7 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { IGoogleUser, IUser } from 'src/types/types';
+import { IGoogleUser } from 'src/types/types';
 import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
@@ -18,13 +18,13 @@ export class AuthController {
 
   @Post('login')
   @UseGuards(LocalAuthGuard)
-  async login(@Req()  req :Request & { user: IUser }) {
+  async login(@Req()  req) {
     return this.authService.login(req.user)
   }
-
+   
   @Get('profile')
   @UseGuards(JwtAuthGuard)
-  getProfile(@Req() req :Request & { user: IUser }) {
+  getProfile(@Req() req) {
     return req.user;
   }
 
@@ -40,5 +40,10 @@ export class AuthController {
     console.log(await this.authService.googleLogin(req.user))
     const { access_token } = await this.authService.googleLogin(req.user);
     return res.redirect(`http://localhost:3333/api/?token=${access_token}`);
+  }
+
+  @Post('refresh')
+  async refreshTokens(@Body('refresh_token') refreshToken: string) {
+    return this.authService.refreshTokens(refreshToken);
   }
 }
