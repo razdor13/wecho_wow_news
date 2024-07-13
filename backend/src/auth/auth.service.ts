@@ -16,7 +16,8 @@ export class AuthService {
   constructor(
     private userService: UserService,
     private readonly jwtService: JwtService,
-    @Inject('JWT_REFRESH_TOKEN_EXPIRATION') private refreshTokenExpiration: string,
+    @Inject('JWT_REFRESH_TOKEN_EXPIRATION')
+    private refreshTokenExpiration: string,
   ) {}
 
   async registerUser(registerDto: RegisterDto) {
@@ -32,8 +33,9 @@ export class AuthService {
 
   async validateUser(email: string, pass: string): Promise<any> {
     const user = await this.userService.findOne(email)
+    console.log(user)
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException('User not found')
     }
     const passwordIsMatch = await argon2.verify(user.password, pass)
     if (passwordIsMatch) {
@@ -43,7 +45,6 @@ export class AuthService {
   }
 
   async login(user) {
-
     return this.generateTokens(user)
   }
 
@@ -62,37 +63,30 @@ export class AuthService {
     return this.generateTokens(user)
   }
 
-  // generateTokens(user: any) {
-  //   const payload = { sub: user.id, email: user.email };
-    
-  //   return {
-  //     access_token: this.jwtService.sign(payload),
-  //     refresh_token: this.jwtService.sign(payload, { expiresIn: this.refreshTokenExpiration }),
-  //   };
-  // }
   generateTokens(user: any) {
-    const payload = { sub: user.id, email: user.email, roles: user.roles || [] };
+    const payload = { sub: user.id, email: user.email, roles: user.roles || [] }
 
     // Генерація access токена з коротшим терміном дії
-    const accessToken = this.jwtService.sign(payload);
+    const accessToken = this.jwtService.sign(payload)
 
     // Генерація refresh токена з довшим терміном дії
     const refreshToken = this.jwtService.sign(payload, {
       secret: this.refreshTokenExpiration, // Секрет для refresh токена
-      expiresIn: '15m' // Термін дії для refresh токена
-    });
+      expiresIn: '15m', // Термін дії для refresh токена
+    })
 
     return {
       access_token: accessToken,
       refresh_token: refreshToken,
-    };
+    }
   }
   async refreshTokens(refreshToken: string) {
+
     try {
-      const payload = this.jwtService.verify(refreshToken);
-      return this.generateTokens({ id: payload.sub, email: payload.email });
+      const payload = this.jwtService.verify(refreshToken, { secret: this.refreshTokenExpiration });
+      return this.generateTokens({ id: payload.sub, email: payload.email })
     } catch (error) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException('Invalid refresh token')
     }
   }
 }

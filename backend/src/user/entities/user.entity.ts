@@ -25,5 +25,5 @@ export class User {
   @Column({ default: 'user' })
   role: 'user' | 'editor' | 'admin' // Ролі користувачів
   @OneToMany(() => Post, (post) => post.author)
-  posts: Post[];
+  posts: Post[]
 }
