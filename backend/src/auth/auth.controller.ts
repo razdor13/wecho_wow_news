@@ -16,6 +16,8 @@ import { LocalAuthGuard } from './guards/local-auth.guard'
 import { JwtAuthGuard } from './guards/jwt-auth.guard'
 import { IGoogleUser } from 'src/types/types'
 import { AuthGuard } from '@nestjs/passport'
+import { RefreshJwtStrategy } from './strategies/refreshToken.strategy'
+import { RefreshJwtAuthGuard } from './guards/refresh-jwt.guard'
 
 @Controller('auth')
 export class AuthController {
@@ -36,7 +38,7 @@ export class AuthController {
   @Get('profile')
   @UseGuards(JwtAuthGuard)
   getProfile(@Req() req) {
-    return req.user
+    return req.user.email
   }
 
   @Get('google')
@@ -48,11 +50,11 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(@Req() req, @Res() res) {
-    const { access_token, refresh_token } = await this.authService.googleLogin(
+    const { access_token } = await this.authService.googleLogin(
       req.user,
     )
-    const user = req.user;
-    const token = user.accessToken;
+    const user = req.user
+    const token = user.accessToken
 
     // Send token back to the frontend
     res.send(`
@@ -60,10 +62,11 @@ export class AuthController {
         window.opener.postMessage({ token: '${token}' }, 'http://localhost:3000');
         window.close();
       </script>
-    `);
+    `)
   }
 
   @Post('refresh')
+  @UseGuards(RefreshJwtAuthGuard)
   async refreshTokens(@Body('refresh_token') refreshToken: string) {
     return this.authService.refreshTokens(refreshToken)
   }

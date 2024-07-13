@@ -10,14 +10,14 @@ import * as argon2 from 'argon2'
 import { JwtService } from '@nestjs/jwt'
 import { IGoogleUser } from 'src/types/types'
 import { v4 as uuidv4 } from 'uuid'
+import { ConfigService } from '@nestjs/config'
 
 @Injectable()
 export class AuthService {
   constructor(
     private userService: UserService,
     private readonly jwtService: JwtService,
-    @Inject('JWT_REFRESH_TOKEN_EXPIRATION')
-    private refreshTokenExpiration: string,
+    private readonly configService: ConfigService
   ) {}
 
   async registerUser(registerDto: RegisterDto) {
@@ -28,7 +28,7 @@ export class AuthService {
       )
     }
     const user = await this.userService.createUser(registerDto)
-    return this.generateTokens(user)
+    return user
   }
 
   async validateUser(email: string, pass: string): Promise<any> {
@@ -64,27 +64,23 @@ export class AuthService {
   }
 
   generateTokens(user: any) {
-    const payload = { sub: user.id, email: user.email, roles: user.roles || [] }
+    const payload = { sub: user.id, email: user.email }
 
-    // Генерація access токена з коротшим терміном дії
     const accessToken = this.jwtService.sign(payload)
 
-    // Генерація refresh токена з довшим терміном дії
     const refreshToken = this.jwtService.sign(payload, {
-      secret: this.refreshTokenExpiration, // Секрет для refresh токена
-      expiresIn: '15m', // Термін дії для refresh токена
+      secret: this.configService.get<string>('JWT_SECRET_REFRESH'),
+      expiresIn: '7d',
     })
-
     return {
       access_token: accessToken,
       refresh_token: refreshToken,
     }
   }
-  async refreshTokens(refreshToken: string) {
-
+  async refreshTokens(user) {
+    console.log(user)
     try {
-      const payload = this.jwtService.verify(refreshToken, { secret: this.refreshTokenExpiration });
-      return this.generateTokens({ id: payload.sub, email: payload.email })
+      return this.generateTokens({ id: user.sub, email: user.email })
     } catch (error) {
       throw new UnauthorizedException('Invalid refresh token')
     }
