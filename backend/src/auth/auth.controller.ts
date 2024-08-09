@@ -9,6 +9,8 @@ import {
   Get,
   Req,
   Res,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common'
 import { AuthService } from './auth.service'
 import { RegisterDto } from './dto/register.dto'
@@ -26,7 +28,11 @@ export class AuthController {
   @Post('register')
   @UsePipes(new ValidationPipe())
   async register(@Body() registerDto: RegisterDto) {
-    return this.authService.registerUser(registerDto)
+    try {
+      return await this.authService.registerUser(registerDto)
+    } catch (error) {
+      throw new HttpException('Registration failed', HttpStatus.BAD_REQUEST)
+    }
   }
 
   @Post('login')
@@ -49,25 +55,46 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Req() req, @Res() res) {
-    const { access_token } = await this.authService.googleLogin(
-      req.user,
-    )
-    const user = req.user
-    const token = user.accessToken
-
-    // Send token back to the frontend
-    res.send(`
-      <script>
-        window.opener.postMessage({ token: '${token}' }, 'http://localhost:3000');
-        window.close();
-      </script>
-    `)
+  async googleAuthRedirect(
+    @Req() req: Request & { user: IGoogleUser },
+    @Res() res,
+  ) {
+    try {
+      const { access_token, refresh_token } =
+        await this.authService.googleLogin(req.user)
+      res.cookie('refresh_token', refresh_token, {
+        httpOnly: true,
+        sameSite: 'strict', // Захист від CSRF
+      })
+      // res.send(`
+      //   <html>
+      //     <script>
+      //       window.opener.postMessage({ access_token: '${access_token}' });
+      //       window.close();
+      //     </script>
+      //   </html>
+      // `);
+      res.end()
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).send('Google login failed')
+    }
   }
-
+  
   @Post('refresh')
   @UseGuards(RefreshJwtAuthGuard)
-  async refreshTokens(@Body('refresh_token') refreshToken: string) {
-    return this.authService.refreshTokens(refreshToken)
+  async refreshTokens(@Req() request) {
+    try {
+      const refreshToken = request.cookies['refresh_token']
+      if (!refreshToken) {
+        throw new HttpException(
+          'Refresh token not found',
+          HttpStatus.BAD_REQUEST,
+        )
+      }
+
+      return this.authService.refreshTokens(refreshToken)
+    } catch (error) {
+      throw new HttpException('Token refresh failed', HttpStatus.UNAUTHORIZED)
+    }
   }
 }

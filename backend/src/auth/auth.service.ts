@@ -78,9 +78,9 @@ export class AuthService {
     }
   }
   async refreshTokens(user) {
-    console.log(user)
     try {
-      return this.generateTokens({ id: user.sub, email: user.email })
+      const { access_token } = this.generateTokens({ id: user.sub, email: user.email })
+      return access_token
     } catch (error) {
       throw new UnauthorizedException('Invalid refresh token')
     }

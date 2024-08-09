@@ -7,8 +7,6 @@ import { User } from 'src/user/entities/user.entity'
 
 @Injectable()
 export class PostService {
-  private readonly logger = new Logger(PostService.name)
-
   constructor(
     @InjectRepository(Post)
     private readonly postRepository: Repository<Post>,
